@@ -23,7 +23,7 @@ def create_parser():
     )
 
     # Directories and checkpoint/sample iterations
-    parser.add_argument("--load_checkpoint", type=str, default="model_epoch_0")
+    parser.add_argument("--load_checkpoint", type=str, default="best_model")
     parser.add_argument(
         "--i", type=int, default=0, help="index of the object to visualize"
     )
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     create_dir(args.output_dir)
 
     # ------ TO DO: Initialize Model for Classification Task ------
-    model = None
+    model = cls_model(num_classes=args.num_cls_class)
 
     # Load Model Checkpoint
     model_path = "./checkpoints/cls/{}.pt".format(args.load_checkpoint)
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     test_label = torch.from_numpy(np.load(args.test_label))
 
     # ------ TO DO: Make Prediction ------
-    pred_label = None
+    pred_label = model(test_data).argmax(dim=-1)
 
     # Compute Accuracy
     test_accuracy = pred_label.eq(test_label.data).cpu().sum().item() / (

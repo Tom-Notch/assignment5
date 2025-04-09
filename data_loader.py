@@ -36,11 +36,11 @@ def get_data_loader(args, train=True):
     Creates training and test data loaders
     """
     dataset = CustomDataSet(args=args, train=train)
-    dloader = DataLoader(
+    dataloader = DataLoader(
         dataset=dataset,
         batch_size=args.batch_size,
         shuffle=train,
         num_workers=args.num_workers,
     )
 
-    return dloader
+    return dataloader

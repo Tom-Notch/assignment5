@@ -2,6 +2,7 @@
 import os
 
 import imageio
+import numpy as np
 import pytorch3d
 import torch
 from pytorch3d.renderer import AlphaCompositor
