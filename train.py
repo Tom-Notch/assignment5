@@ -20,6 +20,34 @@ from utils import create_dir
 from utils import save_checkpoint
 
 
+def get_random_rotation_matrix() -> np.ndarray:
+    """Generate a random 3D rotation matrix."""
+    theta = np.random.uniform(0, np.pi * 2)
+    phi = np.random.uniform(0, np.pi * 2)
+    z = np.random.uniform(0, np.pi * 2)
+
+    # Rotation around z-axis
+    Rz = np.array([[np.cos(z), -np.sin(z), 0], [np.sin(z), np.cos(z), 0], [0, 0, 1]])
+
+    # Rotation around y-axis
+    Ry = np.array(
+        [[np.cos(phi), 0, np.sin(phi)], [0, 1, 0], [-np.sin(phi), 0, np.cos(phi)]]
+    )
+
+    # Rotation around x-axis
+    Rx = np.array(
+        [
+            [1, 0, 0],
+            [0, np.cos(theta), -np.sin(theta)],
+            [0, np.sin(theta), np.cos(theta)],
+        ]
+    )
+
+    # Combined rotation matrix
+    R = Rz @ Ry @ Rx
+    return R
+
+
 def train(
     train_dataloader: DataLoader,
     model: nn.Module,
@@ -39,6 +67,21 @@ def train(
         point_clouds, labels = batch
         point_clouds = point_clouds.to(args.device)
         labels = labels.to(args.device).to(torch.long)
+
+        # Sample points if specified
+        if args.num_points < point_clouds.shape[1]:
+            indices = np.random.choice(
+                point_clouds.shape[1], args.num_points, replace=False
+            )
+            point_clouds = point_clouds[:, indices, :]
+            if args.task == "seg":
+                labels = labels[:, indices]
+
+        # Apply random rotation if specified
+        if args.random_rotation:
+            R = get_random_rotation_matrix()
+            R = torch.from_numpy(R).float().to(args.device)
+            point_clouds = torch.matmul(point_clouds, R)
 
         # ------ TO DO: Forward Pass ------
         predictions: Tensor = model(point_clouds)
@@ -83,6 +126,19 @@ def test(
             point_clouds = point_clouds.to(args.device)
             labels = labels.to(args.device).to(torch.long)
 
+            # Sample points if specified
+            if args.num_points < point_clouds.shape[1]:
+                indices = np.random.choice(
+                    point_clouds.shape[1], args.num_points, replace=False
+                )
+                point_clouds = point_clouds[:, indices, :]
+
+            # Apply random rotation if specified
+            if args.random_rotation:
+                R = get_random_rotation_matrix()
+                R = torch.from_numpy(R).float().to(args.device)
+                point_clouds = torch.matmul(point_clouds, R)
+
             # ------ TO DO: Make Predictions ------
             with torch.no_grad():
                 pred_labels: Tensor = model(point_clouds).argmax(dim=-1)
@@ -102,6 +158,20 @@ def test(
             point_clouds, labels = batch
             point_clouds = point_clouds.to(args.device)
             labels = labels.to(args.device).to(torch.long)
+
+            # Sample points if specified
+            if args.num_points < point_clouds.shape[1]:
+                indices = np.random.choice(
+                    point_clouds.shape[1], args.num_points, replace=False
+                )
+                point_clouds = point_clouds[:, indices, :]
+                labels = labels[:, indices]
+
+            # Apply random rotation if specified
+            if args.random_rotation:
+                R = get_random_rotation_matrix()
+                R = torch.from_numpy(R).float().to(args.device)
+                point_clouds = torch.matmul(point_clouds, R)
 
             # ------ TO DO: Make Predictions ------
             with torch.no_grad():
@@ -196,6 +266,17 @@ def create_parser() -> argparse.ArgumentParser:
         type=int,
         default=6,
         help="The number of segmentation classes",
+    )
+    parser.add_argument(
+        "--num_points",
+        type=int,
+        default=10000,
+        help="The number of points per object to be included in the input data",
+    )
+    parser.add_argument(
+        "--random_rotation",
+        action="store_true",
+        help="Whether to apply random rotation augmentation",
     )
 
     # Training hyper-parameters
