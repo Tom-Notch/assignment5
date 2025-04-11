@@ -275,6 +275,7 @@ def create_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--random_rotation",
+        "-r",
         action="store_true",
         help="Whether to apply random rotation augmentation",
     )
